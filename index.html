@@ -1,0 +1,193 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Rubenbauer/Dose Rechner</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,600&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: zweispaltig – Eingaben links, Ergebnis + Rechenweg rechts; auf dem Handy untereinander */
+:root{
+  --bg:#f6f7f5; --surface:#ffffff; --ink:#1d2622; --muted:#5d6a64; --line:#d9dfdb;
+  --accent:#2f6b57; --accent-soft:#e3efe9; --warn:#9a5b12; --warn-soft:#fbf0e1;
+  --f-display:"Newsreader", Georgia, "Times New Roman", serif;
+  --f-body:"Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#141917; --surface:#1c2320; --ink:#e7ece9; --muted:#9aa8a1; --line:#2f3a35;
+  --accent:#7cc4a6; --accent-soft:#1f3a30; --warn:#e3a95c; --warn-soft:#3a2c18; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#141917; --surface:#1c2320; --ink:#e7ece9; --muted:#9aa8a1; --line:#2f3a35;
+  --accent:#7cc4a6; --accent-soft:#1f3a30; --warn:#e3a95c; --warn-soft:#3a2c18; color-scheme:dark }
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 48px}
+.wrap{max-width:1080px;margin:0 auto;display:flex;flex-direction:column;gap:24px}
+header h1{font-family:var(--f-display);font-weight:600;font-size:clamp(26px,4vw,36px);margin:0;text-wrap:balance}
+header p{margin:6px 0 0;color:var(--muted);max-width:68ch}
+.cite{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.grid{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:24px;align-items:start}
+@media (max-width:820px){.grid{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.panel h2{font-family:var(--f-display);font-weight:600;font-size:19px;margin:0}
+.lbl{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.field{display:flex;flex-direction:column;gap:4px}
+.field label{font-size:13px;font-weight:500}
+.field small{color:var(--muted);font-size:12px}
+input,select{font:inherit;font-family:var(--f-mono);font-size:14px;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);width:100%}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.kids{display:flex;flex-direction:column;gap:8px}
+.kid{display:grid;grid-template-columns:1fr 80px 32px;gap:8px;align-items:end}
+button{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:6px;padding:7px 10px;cursor:pointer}
+button:hover{border-color:var(--accent)}
+.del{padding:7px 0}
+.care{display:flex;align-items:center;gap:10px}
+.care input[type=range]{flex:1;padding:0;accent-color:var(--accent)}
+.care output{font-family:var(--f-mono);min-width:7ch;text-align:right}
+.result{display:flex;flex-wrap:wrap;gap:16px;align-items:baseline;justify-content:space-between;background:var(--accent-soft);border-radius:8px;padding:16px}
+.big{font-family:var(--f-display);font-size:clamp(30px,5vw,42px);font-weight:600;font-variant-numeric:tabular-nums;line-height:1.1}
+.dir{color:var(--muted);font-size:13px}
+.cmp{font-size:14px}
+.cmp b{font-family:var(--f-mono);font-weight:500}
+.warn{background:var(--warn-soft);color:var(--warn);border-radius:6px;padding:10px 12px;font-size:13px}
+.tablebox{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:520px}
+th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums}
+th:first-child,td:first-child{text-align:left}
+td.n{font-family:var(--f-mono)}
+thead th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+tr.sum td{font-weight:600;border-top:2px solid var(--ink)}
+.steps{margin:0;padding-left:20px;color:var(--muted);font-size:13px;display:flex;flex-direction:column;gap:4px}
+.steps b{color:var(--ink);font-weight:600}
+footer{color:var(--muted);font-size:12px;max-width:80ch}
+@media (prefers-reduced-motion:no-preference){.big{transition:color .2s}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="cite">Rubenbauer/Dose, FamRZ 2022, 1497, 1503 · Düsseldorfer Tabelle 2026</div>
+    <h1>Kindesunterhalt bei erweitertem Umgang</h1>
+    <p>Die Haftung wird zwischen Einkommensanteil und Nicht-Betreuungsanteil gemittelt. Der eigene Betreuungsanteil gilt als in Natur geleistet, das Kindergeld wird nach Betreuung ausgeglichen. Gerechnet wird wie in der Unterhaltssoftware der Anwältin.</p>
+  </header>
+
+  <div class="grid">
+    <form class="panel" id="f" autocomplete="off">
+      <h2>Eingaben</h2>
+      <div class="lbl">Bereinigtes Nettoeinkommen (€/Monat)</div>
+      <div class="row2">
+        <div class="field"><label for="incV">Vater</label><input id="incV" type="number" step="0.01" value="7733"></div>
+        <div class="field"><label for="incM">Mutter</label><input id="incM" type="number" step="0.01" value="3867.47"></div>
+      </div>
+      <div class="field"><label for="sb">Angemessener Selbstbehalt</label><input id="sb" type="number" value="1750"><small>Wird vor der Quote von jedem Einkommen abgezogen.</small></div>
+
+      <div class="lbl">Betreuung</div>
+      <div class="field">
+        <label for="care">Betreuungsanteil Vater</label>
+        <div class="care"><input id="care" type="range" min="0" max="50" step="1" value="43"><output id="careOut">43 %</output></div>
+        <small>Mutter entsprechend <span id="careM">57 %</span>. Bei 50 % greift eigentlich das paritätische Wechselmodell nach BGH.</small>
+      </div>
+
+      <div class="lbl">Kindergeld</div>
+      <div class="row2">
+        <div class="field"><label for="kg">Je Kind (€)</label><input id="kg" type="number" value="259"></div>
+        <div class="field"><label for="kgTo">Bezieht</label><select id="kgTo"><option value="M">Mutter</option><option value="V">Vater</option></select></div>
+      </div>
+
+      <div class="lbl">Kinder</div>
+      <div class="kids" id="kids"></div>
+      <button type="button" id="addKid">Kind hinzufügen</button>
+
+      <div class="lbl">Vergleich</div>
+      <div class="field"><label for="fix">Vereinbarter Festbetrag je Kind (€)</label><input id="fix" type="number" value="365"></div>
+    </form>
+
+    <section class="panel" aria-live="polite">
+      <h2>Ergebnis</h2>
+      <div class="result">
+        <div>
+          <div class="big" id="total">–</div>
+          <div class="dir" id="dir">monatlicher Ausgleich</div>
+        </div>
+        <div class="cmp" id="cmp"></div>
+      </div>
+      <div id="warns"></div>
+
+      <div class="lbl">Rechenweg je Kind</div>
+      <div class="tablebox"><table id="tbl"></table></div>
+
+      <ol class="steps" id="steps"></ol>
+    </section>
+  </div>
+
+  <footer>Orientierungsrechnung, keine Rechtsberatung. Liegt das Gesamteinkommen über 11.200 €, rechnet der Rechner mit der höchsten Gruppe (15). Ein Gericht kann den Bedarf dann „nach den Umständen“ höher ansetzen. Bedarfskontrollbetrag und Mehrbedarf sind nicht berücksichtigt. Mindestunterhalt 2026: 486 / 558 / 653 €.</footer>
+</div>
+
+<script>
+const MIN=[486,558,653];
+const GROUPS=[[2100,100],[2500,105],[2900,110],[3300,115],[3700,120],[4100,128],[4500,136],[4900,144],[5300,152],[5700,160],[6400,168],[7200,176],[8200,184],[9700,192],[11200,200]];
+const eur=v=>v.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';
+const pct=v=>(v*100).toLocaleString('de-DE',{maximumFractionDigits:2})+' %';
+const $=id=>document.getElementById(id);
+let kids=[{name:'Kind 1',age:6},{name:'Kind 2',age:9}];
+
+function stage(a){return a<6?0:a<12?1:2}
+function group(inc){for(let i=0;i<GROUPS.length;i++){if(inc<=GROUPS[i][0])return i}return GROUPS.length-1}
+
+function renderKids(){
+  const box=$('kids');box.innerHTML='';
+  kids.forEach((k,i)=>{
+    const d=document.createElement('div');d.className='kid';
+    d.innerHTML=`<div class="field"><label for="kn${i}">Name</label><input id="kn${i}" value="${k.name}"></div>
+      <div class="field"><label for="ka${i}">Alter</label><input id="ka${i}" type="number" min="0" max="17" value="${k.age}"></div>
+      <button type="button" class="del" aria-label="Kind entfernen" ${kids.length<2?'disabled':''}>✕</button>`;
+    d.querySelector(`#kn${i}`).addEventListener('input',e=>{k.name=e.target.value;calc()});
+    d.querySelector(`#ka${i}`).addEventListener('input',e=>{k.age=Math.max(0,Math.min(17,+e.target.value||0));calc()});
+    d.querySelector('button').addEventListener('click',()=>{kids.splice(i,1);renderKids();calc()});
+    box.appendChild(d);
+  });
+}
+
+function calc(){
+  const V=+$('incV').value||0, M=+$('incM').value||0, SB=+$('sb').value||0;
+  const cV=(+$('care').value)/100, cM=1-cV, KG=+$('kg').value||0, kgTo=$('kgTo').value, fix=+$('fix').value||0;
+  $('careOut').textContent=Math.round(cV*100)+' %'; $('careM').textContent=Math.round(cM*100)+' %';
+  const total=V+M, g=group(total), p=GROUPS[g][1];
+  const hV=Math.max(0,V-SB), hM=Math.max(0,M-SB), qV=(hV+hM)>0?hV/(hV+hM):0.5, qM=1-qV;
+  const mV=((1-cV)+qV)/2, mM=((1-cM)+qM)/2;
+  let rows='', sum=0, sumFix=0, liabV=0, liabM=0;
+  rows+=`<thead><tr><th>Kind</th><th>Tabelle</th><th>Restbedarf</th><th>Haftung V</th><th>Natural V</th><th>KG-Ausgleich</th><th>Zahlung V → M</th></tr></thead><tbody>`;
+  kids.forEach(k=>{
+    const tab=Math.ceil(MIN[stage(k.age)]*p/100), rest=tab-KG/2;
+    const hafV=rest*mV, natV=rest*cV, diff=hafV-natV;
+    const kgAdj = kgTo==='M' ? -KG*cV : KG*cM;
+    const pay=diff+kgAdj; sum+=pay; sumFix+=fix; liabV+=hafV; liabM+=rest*mM;
+    rows+=`<tr><td>${k.name||'Kind'} (${k.age})</td><td class="n">${eur(tab)}</td><td class="n">${eur(rest)}</td><td class="n">${eur(hafV)}</td><td class="n">−${eur(natV)}</td><td class="n">${kgAdj<0?'−':'+'}${eur(Math.abs(kgAdj))}</td><td class="n"><b>${eur(pay)}</b></td></tr>`;
+  });
+  rows+=`<tr class="sum"><td>Summe</td><td></td><td></td><td></td><td></td><td></td><td class="n">${eur(sum)}</td></tr></tbody>`;
+  $('tbl').innerHTML=rows;
+  $('total').textContent=eur(Math.abs(sum));
+  $('dir').textContent= sum>=0 ? 'zahlt der Vater monatlich an die Mutter' : 'zahlt die Mutter monatlich an den Vater';
+  const diffFix=sumFix-sum;
+  $('cmp').innerHTML = kids.length ? `Festbetrag gesamt: <b>${eur(sumFix)}</b><br>${diffFix>=0?'liegt':'liegt'} <b>${eur(Math.abs(diffFix))}</b> ${diffFix>=0?'über':'unter'} dem Modell` : '';
+  const w=[];
+  if(total>11200) w.push('Gesamteinkommen über 11.200 €: Es wird mit Gruppe 15 gerechnet. Ein Gericht kann den Bedarf höher ansetzen.');
+  if(cV<0.2) w.push('Unter 20 % Betreuung sieht die Vereinbarung das Modell nicht vor. Dann gilt das Residenzmodell.');
+  if(cV>=0.5) w.push('Bei 50 % rechnet der BGH nach dem paritätischen Wechselmodell (reine Einkommensquote), nicht nach diesem Modell.');
+  if(V-liabV<1450) w.push('Der Vater unterschreitet nach Abzug seiner Haftung den notwendigen Selbstbehalt von 1.450 €.');
+  if(M-liabM<1450) w.push('Die Mutter unterschreitet nach Abzug ihrer Haftung den notwendigen Selbstbehalt von 1.450 €.');
+  $('warns').innerHTML=w.map(t=>`<div class="warn">${t}</div>`).join('');
+  $('steps').innerHTML=`
+    <li><b>Bedarf:</b> Gesamteinkommen ${eur(total)} → Gruppe ${g+1} (${p} % des Mindestunterhalts), minus halbes Kindergeld.</li>
+    <li><b>Einkommensquote:</b> (Einkommen − ${eur(SB)}) je Elternteil → Vater ${pct(qV)}, Mutter ${pct(qM)}.</li>
+    <li><b>Haftungsquote:</b> Mittel aus Nicht-Betreuungsanteil und Einkommensquote → Vater (${pct(1-cV)} + ${pct(qV)}) ÷ 2 = <b>${pct(mV)}</b>, Mutter ${pct(mM)}.</li>
+    <li><b>Naturalleistung:</b> Der eigene Betreuungsanteil (${pct(cV)}) des Restbedarfs gilt als erbracht.</li>
+    <li><b>Kindergeld:</b> ${kgTo==='M'?`Die Mutter gleicht ${pct(cV)} des Kindergelds an den Vater aus.`:`Der Vater gleicht ${pct(cM)} des Kindergelds an die Mutter aus.`}</li>`;
+}
+
+['incV','incM','sb','care','kg','kgTo','fix'].forEach(id=>$(id).addEventListener('input',calc));
+$('addKid').addEventListener('click',()=>{kids.push({name:'Kind '+(kids.length+1),age:6});renderKids();calc()});
+$('f').addEventListener('submit',e=>e.preventDefault());
+renderKids();calc();
+</script>
+
+</body></html>
